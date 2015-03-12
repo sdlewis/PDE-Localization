@@ -131,6 +131,8 @@ def lessthan(deltaJ, total_time, iterations):
     return deltaJ < 0
 
 #simulated annealing decision method
+#add randomness to the decision making process
+#which helps prevent getting stuck in local minima
 def simulatedAnnealing(deltaJ, time, iterations, Tinit = Tinit):
     T = (Tinit *(iterations - time))/iterations
     return P(deltaJ, T) > np.random.rand()
