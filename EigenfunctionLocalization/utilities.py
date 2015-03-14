@@ -29,7 +29,9 @@ def pickleload(name):
 
 #return the neighbors of a point or set of points along axes
 def neighbors(points):
-    """return the manhattan neighbors of a point or set"""
+    """return the manhattan neighbors of a point stored as a tuple
+    or set/list of points stored as tuples
+    """
     deltas = ((1,0), (-1,0), (0,1), (0,-1))
     if type(points) == tuple:
         x1, x2 = points

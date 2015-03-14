@@ -93,29 +93,6 @@ def landscape(U, index = None):
     else:
         raise ValueError, "index in landscape must be None, list, set or int"
 
-#Solve for the landscape function on the component U.Omega[i]
-#archived as of 3/19/14
-def landscapeOLD(U, index = None):
-    if index == None:
-        return landscapeOLD(U, U.keys())
-    elif type(index) == list or type(index) == set:
-        return {i:landscapeOLD(U, i) for i in index}
-    elif type(index) == int or index == 'domain':
-        if index in U.keys() or index == 'domain':
-            M, indexing = opToMatrix(U, index)
-            q = np.zeros(len(indexing)) + U.meshSize**2
-            if len(indexing) == 1:
-                u = solve(M.todense(), q)
-            else:
-                u = spsolve(M.tocsr(), q)
-            u = utes.unindexer(U, u, indexing)
-            return u
-        else:
-            return np.zeros((U.n, U.n))
-    else:
-        raise ValueError, "index in landscapeSolver must be None, list, set or int"
-
-
 #Find the landscape function over the domain        
 def globalLandscape(U):
     W = U.copy()
@@ -151,6 +128,21 @@ def runSearch(U, indices = None, decisionMethod = lessthan,
                 iterations = setup.iterations, makeMovie = False, ipf = 20,
                 initMerge = 150, mergePeriod = 200, printUpdate = 50):
                 
+    '''Perform a search through for a minimizer of the energy functional
+    defined in DFJM. Returns a dictionary with the best partition, current
+    partition, and movie if makeMovie == True.
+    Parameters: 
+        indices: if None, uses all sets as free parameters
+                 if a set of integers, fixes all other sets and
+                 uses only the given sets as free parameters
+        decisionMethod: the method for deciding whether or not to 
+                 take a step. If lessthan, takes only steps
+                 which improve the current energy. If simulatedannealing,
+                 takes probablistic steps according to a simulated annealing
+                 framework.
+        makeMovie: if set to true, will create a list which records the
+                 evolution process.
+    '''
     tlast = time.time()
     t0 = tlast
                 
@@ -283,6 +275,7 @@ if __name__ == '__main__':
     #S.append(utes.graphball((40,40), 9, U.Domain))
     #for s in S:
     #    U.add(s)
+    
     g = landscape(U)
     UCurr = U.copy()
     uCurr = landscape(UCurr)

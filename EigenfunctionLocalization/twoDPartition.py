@@ -12,10 +12,10 @@ class partition(object):
                   abDomain = None,
                   Omega = None, bOmega = None, abOmega = None, 
                   runUpdate = False, setOperator = True):
-        #n = number of ticks in each dimension, Domain = underlying domain,
-        #bDomain = boundary of domain, Omega = Partition as a dict,
-        #bOmega = partition boundaries as a dict, abOmega = adjacent boundary
-        #runUpdate; if True, bOmega and abOmega will update
+        """n = number of ticks in each dimension, Domain = underlying domain,
+        bDomain = boundary of domain, Omega = Partition as a dict,
+        bOmega = partition boundaries as a dict, abOmega = adjacent boundary
+        runUpdate; if True, bOmega and abOmega will update"""
         
         self.n = n
         if meshSize == None:
@@ -86,6 +86,13 @@ class partition(object):
     def __len__(self):
         return len(self.Omega)
         
+    def len(self):
+        '''Returns the number of keys in self.Omega'''
+        return len(self.Omega)
+       
+    def length(self):
+        return self.len()
+        
     def __getitem__(self, i):
         if type(i) == tuple:
             key = i[1]
@@ -102,45 +109,52 @@ class partition(object):
         if key[0] == 'c':#omega and its boundary
             return self.completeOmega(i)
             
-        print 'nothing to return in partition.__getitem__'
+        print 'nothing to return in partition.__getitem__'\
+        
+    #########################
+    #                       #
+    # Simple utilities      #
+    #                       #
+    #########################
                   
     
     def keys(self):
         return set(self.Omega.keys())
             
-    #Create a deep copy of self
     def copy(self):
+        '''Create a deep copy of the partition'''
         W = partition(self.n, self.meshSize, self.Domain, self.bDomain, 
             self.abDomain, self.Omega, self.bOmega, self.abOmega,
             setOperator=False)
-        #W.cooOp = self.cooOp
-        #W.indexing = self.indexing
-        #W.revIndexing = self.revIndexing
-        #W.csrOp = self.csrOp
+            
         return W
         
-    #Number of keys in self.Omega
-    #Number of parts in the partition self
-    def len(self):
-        return len(self.Omega.keys())
-       
-    #return the highest Key in dictionary 
     def maxKey(self):
+        '''Return the highest key in the dictionary Omega'''
         if len(self) > 0:
             return max(self.keys())
         else:
             return -1
             
     def newIndex(self):
+        '''Generate the minimum new key which has not
+        yet been used. Returns 0 if self.keyArchive is 
+        empty.'''
         if len(self.keyArchive) == 0:
             return 0
         return max(self.keyArchive) + 1
         
-    def completeOmega(self, index):
-        return self.Omega[index].union(self.bOmega[index])
+    #########################
+    #                       #
+    # Geometric data        #
+    # retrieval methods     #
+    #                       #
+    #########################
         
-    def length(self):
-        return self.len()
+    def completeOmega(self, index):
+        '''Return the interior of the ith component of Omega
+        together with its boundary mesh points'''
+        return self.Omega[index].union(self.bOmega[index])
             
     def adjGraph(self):
         """adjacency graph"""
@@ -166,8 +180,9 @@ class partition(object):
                     G.add((i,j), Sratio)
         return G
         
-    #Volume at an index or the volume vector
     def volume(self, index = None):
+        '''Returns the volume at index. If index is not
+        specified, returns a complete list of the the volumes'''
         if index == None:
             return [self.volume(i) for i in self.keys()]
         elif type(index) == int:
@@ -176,9 +191,40 @@ class partition(object):
             return [self.volume(i) for i in index]
         else:
             raise ValueError, "partition.volume takes Non, int or list"
-            
-    #Updating the boundary of index after the set at index has been changed
-    def updateBoundary(self, index=None, ofDomain = False):
+    def bOmegaComponents(self, index):
+        '''Returns a list of the connected components of the boundary
+        bOmega[index]. Index must be an integer'''
+        verts = self.bOmega[index].copy()
+        P = []
+        while len(verts)>0:
+            v = verts.pop()
+            P.append(utes.extendedNeighborComponent(v, verts))
+        return P
+        
+    def abOmegaComponents(self, index):
+        '''Returns a list of the connected components of the adjacenct
+        boundary points abOmega[index]. Index must be an integer'''
+        verts = self.abOmega[index].copy()
+        P = []
+        while len(verts)>0:
+            v = verts.pop()
+            P.append(utes.extendedNeighborComponent(v, verts))
+        return P
+               
+    #########################
+    #                       #
+    # Geometric data        #
+    # manipulation methods  #
+    #                       #
+    #########################
+    
+    def updateBoundary(self, index = None, ofDomain = False):
+        '''Updates the boundary of a region after the underlying set has been
+        updated. If index is an integer i, updates the ith index.
+        If index is None, updates all sets in Omega. If
+        index is a list or a set, update all components in index.
+        If ofDomain = True, updates the boundary of the underlying
+        Domain'''
         if ofDomain:
             bD = set()
             abD = set()
@@ -211,35 +257,17 @@ class partition(object):
                 self.abOmega[index] = abW
             else:
                 raise ValueError, "index must be list, set, None or int"
-            
-    #returns a list of the connected components of bOmega[index]
-    #index must be int        
-    def bOmegaComponents(self, index):
-        verts = self.bOmega[index].copy()
-        P = []
-        while len(verts)>0:
-            v = verts.pop()
-            P.append(utes.extendedNeighborComponent(v, verts))
-        return P
         
-    #returns a list of the connected components of abOmega[index
-    #index must be int
-    def abOmegaComponents(self, index):
-        verts = self.abOmega[index].copy()
-        P = []
-        while len(verts)>0:
-            v = verts.pop()
-            P.append(utes.extendedNeighborComponent(v, verts))
-        return P
-        
-    #removes the key index from U
     def removeKey(self, index):
+        '''Removes the key index from the partition'''
         self.Omega.pop(index, None)
         self.bOmega.pop(index, None)
         self.abOmega.pop(index, None)
         
-    #grow U.Omega[index]
     def grow(self, index, p, r, delta = 1, returnUpdates = False):
+        '''Grows self.Omega[index] by adding in all points which are within
+        delta of the ball of center p and radius r interesected with
+        the boundary'''
         S = utes.graphball(p, r, self.bOmega[index])
         updated = set()
         for i in xrange(delta - 1):
@@ -263,8 +291,10 @@ class partition(object):
         else:
             return None
             
-    #shrink U.Omega[index]
     def shrink(self, index, p, r, delta = 1, returnUpdates = False):
+        '''Shrinks self.Omega[index] by removing all points which are within
+        delta of the ball of center p and radius r interesected with
+        the adjacency boundary'''
         S = utes.graphball(p, r, self.abOmega[index])
         updated = set()
         for i in xrange(delta - 1):
@@ -282,8 +312,10 @@ class partition(object):
         else:
             return None
         
-    #evolve the set self.Omega[index] and surrounding sets appropriately
     def evolve(self, index, pgrow = .5, delta = 1, returnUpdates = False):
+        '''Evolve a partition by growing or shring self.Omega[index]
+        according to the grow and shrink methods. This occurs with 
+        probability of growing == pgrow and a thickness parameter of delta'''
         if np.random.rand() <= pgrow:
             comp = self.bOmegaComponents(index)
             c = len(comp)
@@ -301,14 +333,14 @@ class partition(object):
             p = utes.randomPoint(comp[i])
             return self.shrink(index, p, r, delta = delta, returnUpdates = returnUpdates)
     
-    #Update the sets of U to agree with those of W as in dict
-    #Dangerous: Doesnt check for intersection
+
     def update(self, W):
         """Update a partition with the data of another partition.
         All keys that are in W but not U will be added. All shared
         keys of U and W will be overwritten.
         
-        WARNING: Does so blindly with no check for overlap/compatability"""
+        WARNING: Does NOT check for overlapping sets or incompatabilities.
+        Must use updateBoundary separately."""
         if type(W) == partition:
             W = W.copy()
             self.Omega.update(W.Omega)
@@ -374,13 +406,6 @@ class partition(object):
                     break
                     
         print "Created %s seeds out of %s requested" %(numSeeds, seedCount)
-        
-    def indicatorOLD(self, index):
-        return  np.array([[int((i,j) in self[0]) for j in xrange(self.n)] 
-                            for i in xrange(self.n)])
-    def bindicatorOLD(self,index):
-        return  np.array([[int((i,j) in self[(0,'b')]) for j in xrange(self.n)] 
-                            for i in xrange(self.n)])
                             
     def indicator(self, index):
         M = np.zeros((self.n, self.n))
