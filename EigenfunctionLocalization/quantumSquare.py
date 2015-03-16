@@ -96,7 +96,4 @@ def __functionEnergy(U, f, V, index):
 def functionEnergy(U, f, index):
     return __functionEnergy(U, f, V, index)
     
-    
-if __name__ == "__main__":
-    U = partition(100, 1./100)
 
