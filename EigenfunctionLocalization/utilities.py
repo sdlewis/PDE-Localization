@@ -74,15 +74,6 @@ def unindex(U, u, index):
         u_[a] = v
     return u_
     
-#unindex a function to be defined on the nxn square
-#Deprecated 3/19/14
-def unindexer(U, u, indexing):
-    n = U.n
-    u_ = np.zeros((n,n))
-    for key, value in indexing.iteritems():
-        u_[key] = u[value]
-    return u_
-    
 #Fast Matrix Slicing
 def cooSlice(M, indices):
     M2 = M.tocsr()
